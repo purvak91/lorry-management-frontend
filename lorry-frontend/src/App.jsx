@@ -26,17 +26,24 @@ function App() {
   const [newDescription, setDescription] = useState('');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingLr, setEditingLr] = useState(null); 
+
 
   async function fetchLorries(targetPage = page) {
     setMessage('Loading lorries...');
     setLoading(true);
+
     try {
       const res = await fetch(`http://localhost:1001/api/lorry?page=${targetPage}&size=${size}`);
+
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
       const data = await res.json();
       const items = Array.isArray(data) ? data : (data.content ?? []);
       setLorries(items);
       setMessage(`Loaded ${items.length} lorries`);
+
       if (!Array.isArray(data)) {
         setPageInfo({
           pageNumber: data.number,
@@ -44,9 +51,21 @@ function App() {
           totalElements: data.totalElements,
         });
       }
+      else {
+        setPageInfo({
+          pageNumber:0,
+          totalElements: items.length,
+          totalPages: 1
+        });
+      }
+
+      return items;
+
     } catch (err) {
       console.error('Failed to load from backend:', err);
       setMessage('Failed to load lorries from backend');
+      return [];
+
     } finally {
       setLoading(false);
     }
@@ -137,10 +156,136 @@ function App() {
     }
   }
 
+async function handleDeleteLorry(lr) {
+  if (!confirm(`Delete lorry LR ${lr}? This action cannot be undone.`)) return;
+
+  setLoading(true);
+  setMessage(`Deleting LR ${lr}...`);
+
+  try {
+    const response = await fetch(`http://localhost:1001/api/lorry/${lr}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const ct = response.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const err = await response.json();
+        console.error('Delete error JSON:', err);
+        setMessage(err.message || 'Failed to delete lorry');
+      } else {
+        const txt = await response.text();
+        console.error('Delete error text:', txt);
+        setMessage(`Failed to delete lorry: ${txt}`);
+      }
+      return;
+    }
+
+    setMessage(`LR ${lr} deleted`);
+    
+    const items = await fetchLorries(page);
+
+    if (items.length === 0 && page > 0) { 
+      const prevPage = Math.max(page - 1, 0);
+      setPage(prevPage);
+      await fetchLorries(prevPage);
+    }
+
+  } catch (err) {
+    console.error('Network error deleting lorry:', err);
+    setMessage('Network error while deleting lorry');
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleUpdateLorry(e) {
+  e.preventDefault();
+  if (editingLr == null) {
+    setMessage('No LR is selected for the update');
+    return;
+  }
+
+  const trimmedNumber = newLorryNumber.trim();
+
+  if (!trimmedNumber) {
+    setMessage('Lorry Number is required');
+    return;
+  }
+
+  setCreating(true);
+  setMessage(`Updating LR ${editingLr}...`);
+
+  try {
+    const payload = {
+      lr: editingLr,
+      lorryNumber: trimmedNumber,
+      consignorName: newConsignorName || null,
+      date: newDate ? newDate : null,
+      consignorAddress: newConsignorAddress || null,
+      fromLocation: newFromLocation || null,
+      toLocation: newToLocation || null,
+      description: newDescription || null,
+      weight: newWeight ? Number(newWeight) : null,
+      freight: newFreight ? Number(newFreight) : null,
+    };
+
+    const response = await fetch(`http://localhost:1001/api/lorry/${editingLr}`, {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const ct = response.headers.get('content-type') || '';
+      console.log('two');
+      if (ct.includes('application./json')) {
+        const err = await response.json();
+        console.error('Update error: ', err);
+        setMessage(err.message || JSON.stringify(err));
+      } else {
+        const txt = await response.text();
+        console.error('Update error text: ', txt);
+        setMessage(`Failed to update lorry: ${txt}`);
+      }
+      return;
+    }
+
+    setIsModalOpen(false);
+    setIsEditing(false);
+    setEditingLr(null);
+    setMessage(`Lr ${editingLr} updated`);
+
+    await fetchLorries(page);
+  } catch (err) {
+    console.error('Network error updating lorry: ', err);
+    setMessage('Network error while updating lorry');
+  } finally {
+    setCreating(false);
+  }
+}
+
   async function openCreateModal() {
     setIsModalOpen(true);
     await loadNextLr();
   }
+
+  function openEditModal(lorry) {
+  setEditingLr(lorry.lr);
+  setNewLr(lorry.lr); 
+  setNewLorryNumber(lorry.lorryNumber ?? '');
+  setDate(lorry.date ?? '');
+  setFromLocation(lorry.fromLocation ?? '');
+  setToLocation(lorry.toLocation ?? '');
+  setConsignorName(lorry.consignorName ?? '');
+  setConsignorAddress(lorry.consignorAddress ?? '');
+  setWeight(lorry.weight ?? '');
+  setFreight(lorry.freight ?? '');
+  setDescription(lorry.description ?? '');
+
+  setIsEditing(true);
+  setIsModalOpen(true);
+}
 
   return (
     <div className="app-shell">
@@ -202,9 +347,12 @@ function App() {
                 <th>Date</th>
                 <th>From</th>
                 <th>To</th>
-                <th>Consignor</th>
+                <th>Consignor Name</th>
+                <th>Consignor Address</th>
                 <th>Weight</th>
                 <th>Freight</th>
+                <th>Description</th>
+                <th>Actions</th>  
               </tr>
             </thead>
             <tbody>
@@ -216,8 +364,28 @@ function App() {
                   <td>{lorry.fromLocation ?? '—'}</td>
                   <td>{lorry.toLocation ?? '—'}</td>
                   <td>{lorry.consignorName ?? '—'}</td>
+                  <td>{lorry.consignorAddress ?? '—'}</td>
                   <td>{lorry.weight ?? '—'}</td>
                   <td>{lorry.freight ?? '—'}</td>
+                  <td>{lorry.description ?? '—'}</td>
+                  <td>
+                    <button
+                      className="btn edit"
+                      onClick={() => openEditModal(lorry)}
+                      disabled={loading}
+                      title={`Update LR ${lorry.lr}`}
+                    >
+                      Update
+                    </button>
+                    <button
+                      className="btn delete"
+                      onClick={() => handleDeleteLorry(lorry.lr)}
+                      disabled={loading}
+                      title={`Delete LR ${lorry.lr}`}
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -226,14 +394,30 @@ function App() {
       )}
 
       {isModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
+        <div className="modal-backdrop" 
+          onClick={() => { 
+            setIsModalOpen(false); 
+            setIsEditing(false); 
+            setEditingLr(null); 
+          }}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Create Lorry</h3>
-              <button className="icon-close" onClick={() => setIsModalOpen(false)}>✕</button>
+              <h3>{isEditing ? `Edit Lorry ${editingLr}` : 'Create Lorry'}</h3>
+
+              <button className="icon-close" 
+                onClick={() => { 
+                  setIsModalOpen(false); 
+                  setIsEditing(false); 
+                  setEditingLr(null); 
+                  }}
+              > ✕ </button>
             </div>
 
-            <form className="modal-form" onSubmit={handleCreateLorry}>
+            <form
+              className="modal-form"
+              onSubmit={isEditing ? handleUpdateLorry : handleCreateLorry}
+            >
               <div className="modal-row">
                 <label>LR</label>
                 <input type="text" value={newLr ?? ''} readOnly />
@@ -291,10 +475,19 @@ function App() {
 
               <div className="modal-actions">
                 <button type="button" onClick={() => { loadNextLr(); }} disabled={creating}>Regenerate LR</button>
+
                 <button type="submit" className="primary" disabled={creating}>
-                  {creating ? 'Saving...' : 'Save'}
+                  {creating ? (isEditing ? 'Updating...' : 'Saving...') : (isEditing ? 'Update' : 'Save')}
                 </button>
-                <button type="button" onClick={() => setIsModalOpen(false)} disabled={creating}>Cancel</button>
+
+                <button 
+                  type="button" 
+                  onClick={() => { setIsModalOpen(false); setIsEditing(false); setEditingLr(null); }} 
+                  disabled={creating}
+                >
+                    Cancel
+                </button>
+
               </div>
             </form>
           </div>

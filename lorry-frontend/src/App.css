@@ -222,3 +222,41 @@ tr:hover {
   .modal-row label { width:100%; margin-bottom:6px; }
   .modal-actions { flex-direction:column-reverse; }
 }
+
+.btn.delete {
+  background: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn.delete:hover:not(:disabled) {
+  background: #e03b3b;
+}
+
+.btn.delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn.edit {
+  background: #ffaa00;
+  color: #111;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.btn.edit:hover:not(:disabled) {
+  background: #ff9900;
+}
+
+.btn.edit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
