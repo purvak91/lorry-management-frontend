@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo} from 'react';
 import { getNextLr } from '../services/lorryApi';
 
 export default function CreateOrEditLorryModal({
@@ -8,6 +8,7 @@ export default function CreateOrEditLorryModal({
   onClose,
   onSubmit,            
   onStatusMessage,     
+  knownLorryNumbers = []
 }) {
   const isEditing = mode === 'edit';
 
@@ -26,6 +27,35 @@ export default function CreateOrEditLorryModal({
 
   const [submitting, setSubmitting] = useState(false);
   const [loadingNext, setLoadingNext] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+
+  const suggestions = useMemo(() => {
+    const raw = form.lorryNumber || '';
+    const q = raw.trim().toLowerCase();
+
+    if (q.length < 1) return [];
+
+    const cleanedList = knownLorryNumbers
+      .filter((num) => typeof num === 'string' && num.trim() !== '');
+
+    const startsWithMatches = [];
+    const containsMatches = [];
+
+    cleanedList.forEach((num) => {
+      const v = num.toLowerCase();
+
+      if (v === q) return;
+
+      if (v.startsWith(q)) {
+        startsWithMatches.push(num);
+      } else if (v.includes(q)) {
+        containsMatches.push(num);
+      }
+    });
+
+    return [...startsWithMatches, ...containsMatches].slice(0, 7);
+  }, [knownLorryNumbers, form.lorryNumber]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +109,45 @@ export default function CreateOrEditLorryModal({
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === 'lorryNumber') {
+      setHighlightIndex(-1); 
+      setShowSuggestions(true);
+    }
+  }
+
+  function handleLorryNumberKeyDown(e) {
+    if (e.key === 'Escape') {
+      setHighlightIndex(-1);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (!showSuggestions || !suggestions.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIndex((prev) => {
+        const next = prev + 1;
+        return next >= suggestions.length ? 0 : next;
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIndex((prev) => {
+        if (prev <= 0) return suggestions.length - 1;
+        return prev - 1;
+      });
+    } else if (e.key === 'Enter') {
+      if (highlightIndex >= 0 && highlightIndex < suggestions.length) {
+        e.preventDefault();
+        const chosen = suggestions[highlightIndex];
+        setForm((prev) => ({
+          ...prev,
+          lorryNumber: chosen,
+        }));
+        setHighlightIndex(-1);
+        setShowSuggestions(false); 
+      }
+    }
   }
 
   async function handleSubmit(e) {
@@ -148,13 +217,90 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Lorry Number *</label>
-            <input
-              type="text"
-              name="lorryNumber"
-              value={form.lorryNumber}
-              onChange={handleChange}
-              required
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                name="lorryNumber"
+                value={form.lorryNumber}
+                onChange={handleChange}
+                onKeyDown={handleLorryNumberKeyDown}
+                onFocus={() => setShowSuggestions(true)}
+                autoComplete="off"
+                required
+                style={{ width: '100%' }}
+              />
+
+              {showSuggestions && suggestions.length > 0 && (
+                <div
+                  className="autocomplete-list"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: 4,
+                    marginTop: 2,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    zIndex: 2000,
+                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {suggestions.map((num, idx) => {
+                    const query = form.lorryNumber.trim();
+                    const lowerNum = num.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+
+                    const index = lowerNum.indexOf(lowerQuery);
+
+                    let before = num;
+                    let match = '';
+                    let after = '';
+
+                    if (index >= 0 && query.length >= 2) {
+                      before = num.slice(0, index);
+                      match = num.slice(index, index + query.length);
+                      after = num.slice(index + query.length);
+                    }
+
+                    const isHighlighted = idx === highlightIndex;
+
+                    return (
+                      <div
+                        key={num}
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            lorryNumber: num,
+                          }));
+                          setHighlightIndex(-1);
+                          setShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          background: isHighlighted ? '#eee' : 'transparent',
+                        }}
+                        onMouseDown={(e) => e.preventDefault()} // avoid input blur before click
+                      >
+                        {index >= 0 ? (
+                          <>
+                            {before}
+                            <strong>{match}</strong>
+                            {after}
+                          </>
+                        ) : (
+                          num
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-row">

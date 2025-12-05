@@ -20,6 +20,8 @@ function LorryListPage() {
   const [modalMode, setModalMode] = useState('create'); 
   const [editingLorry, setEditingLorry] = useState(null); 
 
+  const [knownLorryNumbers, setKnownLorryNumbers] = useState([]);
+
   async function fetchLorries(targetPage = page) {
     setMessage('Loading lorries...');
     setLoading(true);
@@ -29,6 +31,16 @@ function LorryListPage() {
       const items = Array.isArray(data) ? data : data.content ?? [];
 
       setLorries(items);
+
+      const nums = items
+        .map((it) => it.lorryNumber)
+        .filter((n) => typeof n === 'string' && n.trim() !== '');
+      setKnownLorryNumbers((prev) => {
+        const set = new Set(prev);
+        nums.forEach((n) => set.add(n));
+        return Array.from(set);
+      });
+
       setMessage(`Loaded ${items.length} lorries`);
 
       if (!Array.isArray(data)) {
@@ -206,6 +218,7 @@ function LorryListPage() {
         onClose={handleModalClose}
         onSubmit={handleModalSubmit}
         onStatusMessage={handleModalStatus}
+        knownLorryNumbers={knownLorryNumbers}
       />
     </div>
   );
