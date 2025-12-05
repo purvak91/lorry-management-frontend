@@ -367,7 +367,7 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Lorry Number *</label>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div className="field-with-autocomplete">
               <input
                 type="text"
                 name="lorryNumber"
@@ -377,28 +377,10 @@ export default function CreateOrEditLorryModal({
                 onFocus={() => setShowSuggestions(true)}
                 autoComplete="off"
                 required
-                style={{ width: '100%' }}
               />
 
               {showSuggestions && suggestions.length > 0 && (
-                <div
-                  className="autocomplete-list"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'white',
-                    border: '1px solid #ccc',
-                    borderRadius: 4,
-                    marginTop: 2,
-                    maxHeight: 150,
-                    overflowY: 'auto',
-                    zIndex: 2000,
-                    fontSize: '0.9rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  }}
-                >
+                <div className="autocomplete-list">
                   {suggestions.map((num, idx) => {
                     const query = form.lorryNumber.trim();
                     const lowerNum = num.toLowerCase();
@@ -429,12 +411,11 @@ export default function CreateOrEditLorryModal({
                           setHighlightIndex(-1);
                           setShowSuggestions(false);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          background: isHighlighted ? '#eee' : 'transparent',
-                        }}
-                        onMouseDown={(e) => e.preventDefault()} // avoid input blur before click
+                        className={
+                          'autocomplete-item' +
+                          (isHighlighted ? ' autocomplete-item--highlighted' : '')
+                        }
+                        onMouseDown={(e) => e.preventDefault()} 
                       >
                         {index >= 0 ? (
                           <>
@@ -465,7 +446,7 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>From</label>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div className="field-with-autocomplete">
               <input
                 type="text"
                 name="fromLocation"
@@ -474,27 +455,12 @@ export default function CreateOrEditLorryModal({
                 onKeyDown={handleFromKeyDown}
                 onFocus={() => setFromShowSuggestions(true)}
                 autoComplete="off"
-                style={{ width: '100%' }}
+                required
               />
 
               {fromShowSuggestions && fromSuggestions.length > 0 && (
                 <div
                   className="autocomplete-list"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'white',
-                    border: '1px solid #ccc',
-                    borderRadius: 4,
-                    marginTop: 2,
-                    maxHeight: 150,
-                    overflowY: 'auto',
-                    zIndex: 2000,
-                    fontSize: '0.9rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  }}
                 >
                   {fromSuggestions.map((val, idx) => {
                     const query = form.fromLocation.trim();
@@ -525,11 +491,10 @@ export default function CreateOrEditLorryModal({
                           setFromHighlightIndex(-1);
                           setFromShowSuggestions(false);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          background: isHighlighted ? '#eee' : 'transparent',
-                        }}
+                        className={
+                          'autocomplete-item' +
+                          (isHighlighted ? ' autocomplete-item--highlighted' : '')
+                        }
                         onMouseDown={(e) => e.preventDefault()}
                       >
                         {index >= 0 ? (
@@ -551,7 +516,7 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>To</label>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div className="field-with-autocomplete">
               <input
                 type="text"
                 name="toLocation"
@@ -560,27 +525,12 @@ export default function CreateOrEditLorryModal({
                 onKeyDown={handleToKeyDown}
                 onFocus={() => setToShowSuggestions(true)}
                 autoComplete="off"
-                style={{ width: '100%' }}
+                required
               />
 
               {toShowSuggestions && toSuggestions.length > 0 && (
                 <div
                   className="autocomplete-list"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'white',
-                    border: '1px solid #ccc',
-                    borderRadius: 4,
-                    marginTop: 2,
-                    maxHeight: 150,
-                    overflowY: 'auto',
-                    zIndex: 2000,
-                    fontSize: '0.9rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  }}
                 >
                   {toSuggestions.map((val, idx) => {
                     const query = form.toLocation.trim();
@@ -611,11 +561,10 @@ export default function CreateOrEditLorryModal({
                           setToHighlightIndex(-1);
                           setToShowSuggestions(false);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          background: isHighlighted ? '#eee' : 'transparent',
-                        }}
+                        className={
+                          'autocomplete-item' +
+                          (isHighlighted ? ' autocomplete-item--highlighted' : '')
+                        }
                         onMouseDown={(e) => e.preventDefault()}
                       >
                         {index >= 0 ? (
@@ -637,7 +586,7 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Consignor</label>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div className='field-with-autocomplete'>
               <input
                 type="text"
                 name="consignorName"
@@ -646,27 +595,12 @@ export default function CreateOrEditLorryModal({
                 onKeyDown={handleConsignorNameKeyDown}
                 onFocus={() => setConsignorNameShowSuggestions(true)}
                 autoComplete="off"
-                style={{ width: '100%' }}
+                required
               />
 
               {consignorNameShowSuggestions && consignorNameSuggestions.length > 0 && (
                 <div
                   className="autocomplete-list"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'white',
-                    border: '1px solid #ccc',
-                    borderRadius: 4,
-                    marginTop: 2,
-                    maxHeight: 150,
-                    overflowY: 'auto',
-                    zIndex: 2000,
-                    fontSize: '0.9rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  }}
                 >
                   {consignorNameSuggestions.map((val, idx) => {
                     const query = form.consignorName.trim();
@@ -697,11 +631,10 @@ export default function CreateOrEditLorryModal({
                           setConsignorNameHighlightIndex(-1);
                           setConsignorNameShowSuggestions(false);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          background: isHighlighted ? '#eee' : 'transparent',
-                        }}
+                        className={
+                          'autocomplete-item' +
+                          (isHighlighted ? ' autocomplete-item--highlighted' : '')
+                        }
                         onMouseDown={(e) => e.preventDefault()}
                       >
                         {index >= 0 ? (
@@ -743,7 +676,7 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Consignor Address</label>
-            <div style={{ position: 'relative', flex: 1 }}>
+            <div className='field-with-autocomplete'>
               <input
                 type="text"
                 name="consignorAddress"
@@ -752,27 +685,11 @@ export default function CreateOrEditLorryModal({
                 onKeyDown={handleConsignorAddressKeyDown}
                 onFocus={() => setConsignorAddressShowSuggestions(true)}
                 autoComplete="off"
-                style={{ width: '100%' }}
               />
 
               {consignorAddressShowSuggestions && consignorAddressSuggestions.length > 0 && (
                 <div
                   className="autocomplete-list"
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    background: 'white',
-                    border: '1px solid #ccc',
-                    borderRadius: 4,
-                    marginTop: 2,
-                    maxHeight: 150,
-                    overflowY: 'auto',
-                    zIndex: 2000,
-                    fontSize: '0.9rem',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-                  }}
                 >
                   {consignorAddressSuggestions.map((val, idx) => {
                     const query = form.consignorAddress.trim();
@@ -803,11 +720,10 @@ export default function CreateOrEditLorryModal({
                           setConsignorAddressHighlightIndex(-1);
                           setConsignorAddressShowSuggestions(false);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          cursor: 'pointer',
-                          background: isHighlighted ? '#eee' : 'transparent',
-                        }}
+                        className={
+                          'autocomplete-item' +
+                          (isHighlighted ? ' autocomplete-item--highlighted' : '')
+                        }
                         onMouseDown={(e) => e.preventDefault()}
                       >
                         {index >= 0 ? (
