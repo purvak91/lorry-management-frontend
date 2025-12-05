@@ -21,6 +21,10 @@ function LorryListPage() {
   const [editingLorry, setEditingLorry] = useState(null); 
 
   const [knownLorryNumbers, setKnownLorryNumbers] = useState([]);
+  const [knownFromLocations, setKnownFromLocations] = useState([]);
+  const [knownToLocations, setKnownToLocations] = useState([]);
+  const [knownConsignorNames, setKnownConsignorNames] = useState([]);
+  const [knownConsignorAddresses, setKnownConsignorAddresses] = useState([]);
 
   async function fetchLorries(targetPage = page) {
     setMessage('Loading lorries...');
@@ -35,9 +39,50 @@ function LorryListPage() {
       const nums = items
         .map((it) => it.lorryNumber)
         .filter((n) => typeof n === 'string' && n.trim() !== '');
+
+      const froms = items
+        .map((it) => it.fromLocation)
+        .filter((v) => typeof v === 'string' && v.trim() !== '');
+
+      const tos = items
+        .map((it) => it.toLocation)
+        .filter((v) => typeof v === 'string' && v.trim() !== '');
+
+      const consignorNames = items
+        .map((it) => it.consignorName)
+        .filter((v) => typeof v === 'string' && v.trim() !== '');
+
+      const consignorAddresses = items
+        .map((it) => it.consignorAddress)
+        .filter((v) => typeof v === 'string' && v.trim() !== '');
+
       setKnownLorryNumbers((prev) => {
         const set = new Set(prev);
         nums.forEach((n) => set.add(n));
+        return Array.from(set);
+      });
+
+      setKnownFromLocations((prev) => {
+        const set = new Set(prev);
+        froms.forEach((v) => set.add(v));
+        return Array.from(set);
+      });
+
+      setKnownToLocations((prev) => {
+        const set = new Set(prev);
+        tos.forEach((v) => set.add(v));
+        return Array.from(set);
+      });
+
+      setKnownConsignorNames((prev) => {
+        const set = new Set(prev);
+        consignorNames.forEach((v) => set.add(v));
+        return Array.from(set);
+      });
+
+      setKnownConsignorAddresses((prev) => {
+        const set = new Set(prev);
+        consignorAddresses.forEach((v) => set.add(v));
         return Array.from(set);
       });
 
@@ -219,6 +264,10 @@ function LorryListPage() {
         onSubmit={handleModalSubmit}
         onStatusMessage={handleModalStatus}
         knownLorryNumbers={knownLorryNumbers}
+        knownFromLocations={knownFromLocations}
+        knownToLocations={knownToLocations}
+        knownConsignorNames={knownConsignorNames}
+        knownConsignorAddresses={knownConsignorAddresses}
       />
     </div>
   );

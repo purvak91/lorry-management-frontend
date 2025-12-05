@@ -8,7 +8,11 @@ export default function CreateOrEditLorryModal({
   onClose,
   onSubmit,            
   onStatusMessage,     
-  knownLorryNumbers = []
+  knownLorryNumbers = [],
+  knownFromLocations = [],
+  knownToLocations= [],
+  knownConsignorNames = [],
+  knownConsignorAddresses = [],
 }) {
   const isEditing = mode === 'edit';
 
@@ -27,35 +31,72 @@ export default function CreateOrEditLorryModal({
 
   const [submitting, setSubmitting] = useState(false);
   const [loadingNext, setLoadingNext] = useState(false);
+
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [showSuggestions, setShowSuggestions] = useState(true);
 
-  const suggestions = useMemo(() => {
-    const raw = form.lorryNumber || '';
+  const [fromHighlightIndex, setFromHighlightIndex] = useState(-1);
+  const [fromShowSuggestions, setFromShowSuggestions] = useState(true);
+
+  const [toHighlightIndex, setToHighlightIndex] = useState(-1);
+  const [toShowSuggestions, setToShowSuggestions] = useState(true);
+
+  const [consignorNameHighlightIndex, setConsignorNameHighlightIndex] = useState(-1);
+  const [consignorNameShowSuggestions, setConsignorNameShowSuggestions] = useState(true);
+
+  const [consignorAddressHighlightIndex, setConsignorAddressHighlightIndex] = useState(-1);
+  const [consignorAddressShowSuggestions, setConsignorAddressShowSuggestions] = useState(true);
+
+  function buildSuggestions(rawValue, knownList) {
+    const raw = rawValue || '';
     const q = raw.trim().toLowerCase();
 
     if (q.length < 1) return [];
 
-    const cleanedList = knownLorryNumbers
-      .filter((num) => typeof num === 'string' && num.trim() !== '');
+    const cleanedList = knownList
+      .filter((val) => typeof val === 'string' && val.trim() !== '');
 
     const startsWithMatches = [];
     const containsMatches = [];
 
-    cleanedList.forEach((num) => {
-      const v = num.toLowerCase();
-
+    cleanedList.forEach((val) => {
+      const v = val.toLowerCase();
       if (v === q) return;
 
       if (v.startsWith(q)) {
-        startsWithMatches.push(num);
+        startsWithMatches.push(val);
       } else if (v.includes(q)) {
-        containsMatches.push(num);
+        containsMatches.push(val);
       }
     });
 
     return [...startsWithMatches, ...containsMatches].slice(0, 7);
-  }, [knownLorryNumbers, form.lorryNumber]);
+  }
+
+  const suggestions = useMemo(
+    () => buildSuggestions(form.lorryNumber, knownLorryNumbers),
+    [knownLorryNumbers, form.lorryNumber]
+  );
+
+  const fromSuggestions = useMemo(
+    () => buildSuggestions(form.fromLocation, knownFromLocations),
+    [knownFromLocations, form.fromLocation]
+  );
+
+  const toSuggestions = useMemo(
+    () => buildSuggestions(form.toLocation, knownToLocations),
+    [knownToLocations, form.toLocation]
+  );
+
+  const consignorNameSuggestions = useMemo(
+    () => buildSuggestions(form.consignorName, knownConsignorNames),
+    [knownConsignorNames, form.consignorName]
+  );
+
+  const consignorAddressSuggestions = useMemo(
+    () => buildSuggestions(form.consignorAddress, knownConsignorAddresses),
+    [knownConsignorAddresses, form.consignorAddress]
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -113,6 +154,22 @@ export default function CreateOrEditLorryModal({
       setHighlightIndex(-1); 
       setShowSuggestions(true);
     }
+    else if (name === 'fromLocation') {
+      setFromHighlightIndex(-1);
+      setFromShowSuggestions(true);
+    } 
+    else if (name === 'toLocation') {
+      setToHighlightIndex(-1);
+      setToShowSuggestions(true);
+    } 
+    else if (name === 'consignorName') {
+      setConsignorNameHighlightIndex(-1);
+      setConsignorNameShowSuggestions(true);
+    } 
+    else if (name === 'consignorAddress') {
+      setConsignorAddressHighlightIndex(-1);
+      setConsignorAddressShowSuggestions(true);
+    }
   }
 
   function handleLorryNumberKeyDown(e) {
@@ -149,6 +206,99 @@ export default function CreateOrEditLorryModal({
       }
     }
   }
+
+  function makeKeyDownHandler({
+    suggestions,
+    show,
+    setShow,
+    highlightIndex,
+    setHighlightIndex,
+    setValue,
+  }) {
+    return function (e) {
+      if (e.key === 'Escape') {
+        setHighlightIndex(-1);
+        setShow(false);
+        return;
+      }
+
+      if (!show || !suggestions.length) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightIndex((prev) => {
+          const next = prev + 1;
+          return next >= suggestions.length ? 0 : next;
+        });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightIndex((prev) => {
+          if (prev <= 0) return suggestions.length - 1;
+          return prev - 1;
+        });
+      } else if (e.key === 'Enter') {
+        if (highlightIndex >= 0 && highlightIndex < suggestions.length) {
+          e.preventDefault();
+          const chosen = suggestions[highlightIndex];
+          setValue(chosen);
+          setHighlightIndex(-1);
+          setShow(false);
+        }
+      }
+    };
+  }
+
+  const handleFromKeyDown = makeKeyDownHandler({
+    suggestions: fromSuggestions,
+    show: fromShowSuggestions,
+    setShow: setFromShowSuggestions,
+    highlightIndex: fromHighlightIndex,
+    setHighlightIndex: setFromHighlightIndex,
+    setValue: (val) =>
+      setForm((prev) => ({
+        ...prev,
+        fromLocation: val,
+      })),
+  });
+
+  const handleToKeyDown = makeKeyDownHandler({
+    suggestions: toSuggestions,
+    show: toShowSuggestions,
+    setShow: setToShowSuggestions,
+    highlightIndex: toHighlightIndex,
+    setHighlightIndex: setToHighlightIndex,
+    setValue: (val) =>
+      setForm((prev) => ({
+        ...prev,
+        toLocation: val,
+      })),
+  });
+
+  const handleConsignorNameKeyDown = makeKeyDownHandler({
+    suggestions: consignorNameSuggestions,
+    show: consignorNameShowSuggestions,
+    setShow: setConsignorNameShowSuggestions,
+    highlightIndex: consignorNameHighlightIndex,
+    setHighlightIndex: setConsignorNameHighlightIndex,
+    setValue: (val) =>
+      setForm((prev) => ({
+        ...prev,
+        consignorName: val,
+      })),
+  });
+
+  const handleConsignorAddressKeyDown = makeKeyDownHandler({
+    suggestions: consignorAddressSuggestions,
+    show: consignorAddressShowSuggestions,
+    setShow: setConsignorAddressShowSuggestions,
+    highlightIndex: consignorAddressHighlightIndex,
+    setHighlightIndex: setConsignorAddressHighlightIndex,
+    setValue: (val) =>
+      setForm((prev) => ({
+        ...prev,
+        consignorAddress: val,
+      })),
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -260,7 +410,7 @@ export default function CreateOrEditLorryModal({
                     let match = '';
                     let after = '';
 
-                    if (index >= 0 && query.length >= 2) {
+                    if (index >= 0 && query.length >= 1) {
                       before = num.slice(0, index);
                       match = num.slice(index, index + query.length);
                       after = num.slice(index + query.length);
@@ -315,32 +465,260 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>From</label>
-            <input
-              type="text"
-              name="fromLocation"
-              value={form.fromLocation}
-              onChange={handleChange}
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                name="fromLocation"
+                value={form.fromLocation}
+                onChange={handleChange}
+                onKeyDown={handleFromKeyDown}
+                onFocus={() => setFromShowSuggestions(true)}
+                autoComplete="off"
+                style={{ width: '100%' }}
+              />
+
+              {fromShowSuggestions && fromSuggestions.length > 0 && (
+                <div
+                  className="autocomplete-list"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: 4,
+                    marginTop: 2,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    zIndex: 2000,
+                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {fromSuggestions.map((val, idx) => {
+                    const query = form.fromLocation.trim();
+                    const lowerVal = val.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerVal.indexOf(lowerQuery);
+
+                    let before = val;
+                    let match = '';
+                    let after = '';
+
+                    if (index >= 0 && query.length >= 1) {
+                      before = val.slice(0, index);
+                      match = val.slice(index, index + query.length);
+                      after = val.slice(index + query.length);
+                    }
+
+                    const isHighlighted = idx === fromHighlightIndex;
+
+                    return (
+                      <div
+                        key={val}
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            fromLocation: val,
+                          }));
+                          setFromHighlightIndex(-1);
+                          setFromShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          background: isHighlighted ? '#eee' : 'transparent',
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {index >= 0 ? (
+                          <>
+                            {before}
+                            <strong>{match}</strong>
+                            {after}
+                          </>
+                        ) : (
+                          val
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-row">
             <label>To</label>
-            <input
-              type="text"
-              name="toLocation"
-              value={form.toLocation}
-              onChange={handleChange}
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                name="toLocation"
+                value={form.toLocation}
+                onChange={handleChange}
+                onKeyDown={handleToKeyDown}
+                onFocus={() => setToShowSuggestions(true)}
+                autoComplete="off"
+                style={{ width: '100%' }}
+              />
+
+              {toShowSuggestions && toSuggestions.length > 0 && (
+                <div
+                  className="autocomplete-list"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: 4,
+                    marginTop: 2,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    zIndex: 2000,
+                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {toSuggestions.map((val, idx) => {
+                    const query = form.toLocation.trim();
+                    const lowerVal = val.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerVal.indexOf(lowerQuery);
+
+                    let before = val;
+                    let match = '';
+                    let after = '';
+
+                    if (index >= 0 && query.length >= 1) {
+                      before = val.slice(0, index);
+                      match = val.slice(index, index + query.length);
+                      after = val.slice(index + query.length);
+                    }
+
+                    const isHighlighted = idx === toHighlightIndex;
+
+                    return (
+                      <div
+                        key={val}
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            toLocation: val,
+                          }));
+                          setToHighlightIndex(-1);
+                          setToShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          background: isHighlighted ? '#eee' : 'transparent',
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {index >= 0 ? (
+                          <>
+                            {before}
+                            <strong>{match}</strong>
+                            {after}
+                          </>
+                        ) : (
+                          val
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-row">
             <label>Consignor</label>
-            <input
-              type="text"
-              name="consignorName"
-              value={form.consignorName}
-              onChange={handleChange}
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                name="consignorName"
+                value={form.consignorName}
+                onChange={handleChange}
+                onKeyDown={handleConsignorNameKeyDown}
+                onFocus={() => setConsignorNameShowSuggestions(true)}
+                autoComplete="off"
+                style={{ width: '100%' }}
+              />
+
+              {consignorNameShowSuggestions && consignorNameSuggestions.length > 0 && (
+                <div
+                  className="autocomplete-list"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: 4,
+                    marginTop: 2,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    zIndex: 2000,
+                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {consignorNameSuggestions.map((val, idx) => {
+                    const query = form.consignorName.trim();
+                    const lowerVal = val.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerVal.indexOf(lowerQuery);
+
+                    let before = val;
+                    let match = '';
+                    let after = '';
+
+                    if (index >= 0 && query.length >= 1) {
+                      before = val.slice(0, index);
+                      match = val.slice(index, index + query.length);
+                      after = val.slice(index + query.length);
+                    }
+
+                    const isHighlighted = idx === consignorNameHighlightIndex;
+
+                    return (
+                      <div
+                        key={val}
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            consignorName: val,
+                          }));
+                          setConsignorNameHighlightIndex(-1);
+                          setConsignorNameShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          background: isHighlighted ? '#eee' : 'transparent',
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {index >= 0 ? (
+                          <>
+                            {before}
+                            <strong>{match}</strong>
+                            {after}
+                          </>
+                        ) : (
+                          val
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-row">
@@ -365,12 +743,88 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Consignor Address</label>
-            <input
-              type="text"
-              name="consignorAddress"
-              value={form.consignorAddress}
-              onChange={handleChange}
-            />
+            <div style={{ position: 'relative', flex: 1 }}>
+              <input
+                type="text"
+                name="consignorAddress"
+                value={form.consignorAddress}
+                onChange={handleChange}
+                onKeyDown={handleConsignorAddressKeyDown}
+                onFocus={() => setConsignorAddressShowSuggestions(true)}
+                autoComplete="off"
+                style={{ width: '100%' }}
+              />
+
+              {consignorAddressShowSuggestions && consignorAddressSuggestions.length > 0 && (
+                <div
+                  className="autocomplete-list"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ccc',
+                    borderRadius: 4,
+                    marginTop: 2,
+                    maxHeight: 150,
+                    overflowY: 'auto',
+                    zIndex: 2000,
+                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+                  }}
+                >
+                  {consignorAddressSuggestions.map((val, idx) => {
+                    const query = form.consignorAddress.trim();
+                    const lowerVal = val.toLowerCase();
+                    const lowerQuery = query.toLowerCase();
+                    const index = lowerVal.indexOf(lowerQuery);
+
+                    let before = val;
+                    let match = '';
+                    let after = '';
+
+                    if (index >= 0 && query.length >= 1) {
+                      before = val.slice(0, index);
+                      match = val.slice(index, index + query.length);
+                      after = val.slice(index + query.length);
+                    }
+
+                    const isHighlighted = idx === consignorAddressHighlightIndex;
+
+                    return (
+                      <div
+                        key={val}
+                        onClick={() => {
+                          setForm((prev) => ({
+                            ...prev,
+                            consignorAddress: val,
+                          }));
+                          setConsignorAddressHighlightIndex(-1);
+                          setConsignorAddressShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: '4px 8px',
+                          cursor: 'pointer',
+                          background: isHighlighted ? '#eee' : 'transparent',
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {index >= 0 ? (
+                          <>
+                            {before}
+                            <strong>{match}</strong>
+                            {after}
+                          </>
+                        ) : (
+                          val
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="modal-row">
