@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:1001/api/lorry';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:1001';
+const BASE_URL = `${API_BASE_URL}/api/lorry`;
 
 async function parseError(res) {
   const ct = res.headers.get('content-type') || '';
@@ -21,7 +22,7 @@ async function parseError(res) {
   return `HTTP ${res.status}`;
 }
 
-export async function getLorries(page, size) {
+export async function getLorries(page= 0, size = 5) {
   const res = await fetch(`${BASE_URL}?page=${page}&size=${size}`);
   if (!res.ok) {
     throw new Error(await parseError(res));
