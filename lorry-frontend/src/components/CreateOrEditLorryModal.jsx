@@ -32,6 +32,9 @@ export default function CreateOrEditLorryModal({
   const [submitting, setSubmitting] = useState(false);
   const [loadingNext, setLoadingNext] = useState(false);
 
+  const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
+
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const [showSuggestions, setShowSuggestions] = useState(true);
 
@@ -150,6 +153,8 @@ export default function CreateOrEditLorryModal({
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined}));
+
     if (name === 'lorryNumber') {
       setHighlightIndex(-1); 
       setShowSuggestions(true);
@@ -300,15 +305,57 @@ export default function CreateOrEditLorryModal({
       })),
   });
 
+  function validateForm() {
+    const newErrors = {};
+
+    const trimmedNumber = (form.lorryNumber || '').trim();
+
+    if (!form.lr) {
+      newErrors.lr = 'LR is missing. Try regenerating.';
+    }
+
+    if (!trimmedNumber) {
+      newErrors.lorryNumber = 'Lorry number is required.';
+    }
+
+    if (form.date) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (form.date > todayStr) {
+        newErrors.date = 'Date cannot be in the future.';
+      }
+    }
+
+    if (form.weight !== '') {
+      const w = Number(form.weight);
+      if (Number.isNaN(w)) {
+        newErrors.weight = 'Weight must be a number.';
+      } else if (w < 0) {
+        newErrors.weight = 'Weight cannot be negative.';
+      }
+    }
+
+    if (form.freight !== '') {
+      const f = Number(form.freight);
+      if (Number.isNaN(f)) {
+        newErrors.freight = 'Freight must be a number.';
+      } else if (f < 0) {
+        newErrors.freight = 'Freight cannot be negative.';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
-    const trimmedNumber = form.lorryNumber.trim();
-    if (!trimmedNumber || !form.lr) {
-      onStatusMessage &&
-        onStatusMessage('Please generate LR and enter lorry number');
+    setSubmitError('');
+
+    if (!validateForm()) {
       return;
     }
+    const trimmedNumber = (form.lorryNumber || '').trim();
 
     const payload = {
       lr: form.lr,
@@ -329,7 +376,9 @@ export default function CreateOrEditLorryModal({
       onClose();
     } catch (err) {
       console.error('Submit error:', err);
-      alert(err.message || 'Failed to save lorry');
+      const msg = err.message || 'Failed to save lorry';
+      setSubmitError(msg);
+      onStatusMessage && onStatusMessage(msg);
     } finally {
       setSubmitting(false);
     }
@@ -358,11 +407,14 @@ export default function CreateOrEditLorryModal({
           </button>
         </div>
 
+        {submitError && <div className="submit-error">{submitError}</div>}
+
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="modal-row">
             <label>LR</label>
-            <input type="text" name="lr" value={form.lr} readOnly />
+            <input type="text" name="lr" value={form.lr} readOnly className={errors.lr ? 'input-error' : ''}/>
             {loadingNext && <small>Generating LR...</small>}
+            {errors.lr && <div className="field-error">{errors.lr}</div>}
           </div>
 
           <div className="modal-row">
@@ -377,7 +429,12 @@ export default function CreateOrEditLorryModal({
                 onFocus={() => setShowSuggestions(true)}
                 autoComplete="off"
                 required
+                className={errors.lorryNumber ? 'input-error' : ''}
               />
+
+              {errors.lorryNumber && (
+                <div className="field-error">{errors.lorryNumber}</div>
+              )}
 
               {showSuggestions && suggestions.length > 0 && (
                 <div className="autocomplete-list">
@@ -436,12 +493,16 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Date</label>
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-            />
+            <div className='inside-modal-row'>
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                className={errors.date ? 'input-error' : ''}
+              />
+              {errors.date && <div className="field-error">{errors.date}</div>}
+            </div>
           </div>
 
           <div className="modal-row">
@@ -656,22 +717,30 @@ export default function CreateOrEditLorryModal({
 
           <div className="modal-row">
             <label>Weight</label>
-            <input
-              type="number"
-              name="weight"
-              value={form.weight}
-              onChange={handleChange}
-            />
+            <div className='inside-modal-row'>
+              <input
+                type="number"
+                name="weight"
+                value={form.weight}
+                onChange={handleChange}
+                className={errors.weight ? 'input-error' : ''}
+              />
+              {errors.weight && <div className="field-error">{errors.weight}</div>}
+            </div>
           </div>
 
           <div className="modal-row">
             <label>Freight</label>
-            <input
-              type="number"
-              name="freight"
-              value={form.freight}
-              onChange={handleChange}
-            />
+            <div className='inside-modal-row'>
+              <input
+                type="number"
+                name="freight"
+                value={form.freight}
+                onChange={handleChange}
+                className={errors.freight ? 'input-error' : ''}
+              />
+              {errors.freight && <div className="field-error">{errors.freight}</div>}
+            </div>
           </div>
 
           <div className="modal-row">
