@@ -1,4 +1,4 @@
-import { useState, useMemo, startTransition } from 'react';
+import { useState, useMemo, useEffect} from 'react';
 import LorryTable from '../components/LorryTable';
 import PaginationControls from '../components/PaginationControls';
 import CreateOrEditLorryModal from '../components/CreateOrEditLorryModal';
@@ -23,6 +23,13 @@ function LorryListPage() {
   });
   const [filterError, setFilterError] = useState('');
 
+  useEffect(() => {
+    fetchLorries(0);   
+    setPage(0);
+
+    prefetchSuggestions();
+  }, [filters.searchText, filters.startDate, filters.toDate]);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); 
   const [editingLorry, setEditingLorry] = useState(null); 
@@ -39,13 +46,72 @@ function LorryListPage() {
     return lower.includes('failed') || lower.includes('error');
   }, [message]);
 
+  async function prefetchSuggestions() {
+  try {
+    const pageSizeForSuggestions = 100;
+
+    let pageIndex = 0;
+    let totalPages = 1;
+
+    const allNums = new Set();
+    const allFroms = new Set();
+    const allTos = new Set();
+    const allConsignorNames = new Set();
+    const allConsignorAddresses = new Set();
+
+    const collectFromItems = (items) => {
+      items.forEach((it) => {
+        if (typeof it.lorryNumber === 'string' && it.lorryNumber.trim() !== '') {
+          allNums.add(it.lorryNumber.trim());
+        }
+        if (typeof it.fromLocation === 'string' && it.fromLocation.trim() !== '') {
+          allFroms.add(it.fromLocation.trim());
+        }
+        if (typeof it.toLocation === 'string' && it.toLocation.trim() !== '') {
+          allTos.add(it.toLocation.trim());
+        }
+        if (typeof it.consignorName === 'string' && it.consignorName.trim() !== '') {
+          allConsignorNames.add(it.consignorName.trim());
+        }
+        if (typeof it.consignorAddress === 'string' && it.consignorAddress.trim() !== '') {
+          allConsignorAddresses.add(it.consignorAddress.trim());
+        }
+      });
+    };
+
+    const first = await api.getLorries(pageIndex, pageSizeForSuggestions);
+    const firstItems = Array.isArray(first) ? first : first.content ?? [];
+    collectFromItems(firstItems);
+
+    if (Array.isArray(first)) {
+      totalPages = 1;
+    } else {
+      totalPages = first.totalPages ?? 1;
+    }
+
+    for (pageIndex = 1; pageIndex < totalPages; pageIndex++) {
+      const data = await api.getLorries(pageIndex, pageSizeForSuggestions);
+      const items = Array.isArray(data) ? data : data.content ?? [];
+      collectFromItems(items);
+    }
+
+    setKnownLorryNumbers(Array.from(allNums));
+    setKnownFromLocations(Array.from(allFroms));
+    setKnownToLocations(Array.from(allTos));
+    setKnownConsignorNames(Array.from(allConsignorNames));
+    setKnownConsignorAddresses(Array.from(allConsignorAddresses));
+  } catch (err) {
+    console.error('Failed to prefetch suggestion data:', err);
+  }
+}
+
   async function fetchLorries(targetPage = page, sizeOverride) {
     setMessage('Loading lorries...');
     setLoading(true);
 
     try {
       const effectiveSize = sizeOverride ?? pageSize;
-      const data = await api.getLorries(targetPage, effectiveSize);
+      const data = await api.getLorries(targetPage, effectiveSize, filters);
       const items = Array.isArray(data) ? data : data.content ?? [];
 
       setLorries(items);

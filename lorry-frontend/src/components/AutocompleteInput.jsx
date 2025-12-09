@@ -51,8 +51,19 @@ export default function AutocompleteInput({
     setShowSuggestions(true);
   }
 
+  function handleBlur() {
+    setShowSuggestions(false);
+    setHighlightIndex(-1);
+  }
+
   function handleKeyDown(e) {
     if (e.key === 'Escape') {
+      setHighlightIndex(-1);
+      setShowSuggestions(false);
+      return;
+    }
+
+    if (e.key === 'Tab') {
       setHighlightIndex(-1);
       setShowSuggestions(false);
       return;
@@ -94,6 +105,7 @@ export default function AutocompleteInput({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setShowSuggestions(true)}
+          onBlur={handleBlur}
           autoComplete="off"
           required={required}
           disabled={disabled}
