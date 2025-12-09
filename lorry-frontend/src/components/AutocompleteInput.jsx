@@ -24,7 +24,7 @@ function buildSuggestions(rawValue, knownList = []) {
     }
   });
 
-  return [...startsWithMatches, ...containsMatches].slice(0, 7);
+  return [...startsWithMatches, ...containsMatches];
 }
 
 export default function AutocompleteInput({

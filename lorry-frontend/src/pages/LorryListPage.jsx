@@ -33,6 +33,12 @@ function LorryListPage() {
   const [knownConsignorNames, setKnownConsignorNames] = useState([]);
   const [knownConsignorAddresses, setKnownConsignorAddresses] = useState([]);
 
+  const isError = useMemo(() => {
+    if (!message) return false;
+    const lower = message.toLowerCase();
+    return lower.includes('failed') || lower.includes('error');
+  }, [message]);
+
   async function fetchLorries(targetPage = page, sizeOverride) {
     setMessage('Loading lorries...');
     setLoading(true);
@@ -263,6 +269,7 @@ function LorryListPage() {
           className="primary"
           onClick={openCreateModal}
           style={{ marginLeft: 12 }}
+          disabled={loading}
         >
           + Create Lorry
         </button>
@@ -359,7 +366,13 @@ function LorryListPage() {
         )}
 
       <div className="status-bar">
-        <span>{message}</span>
+        <span
+          className={
+            isError ? 'status-message status-message--error' : 'status-message'
+          }
+        >
+          {message}
+        </span>
         {pageInfo.totalElements > 0 && (
           <span>
             Page {pageInfo.pageNumber + 1} of {pageInfo.totalPages} • Total{' '}
@@ -380,6 +393,11 @@ function LorryListPage() {
 
       {lorries.length > 0 && (
         <div className="table-container">
+          {loading && (
+            <div className="loading-overlay">
+              <div className="spinner" />
+            </div>
+          )}
           <LorryTable
             lorries={filteredLorries}
             loading={loading}
