@@ -39,7 +39,7 @@ function LorryListPage() {
 
     try {
       const effectiveSize = sizeOverride ?? pageSize;
-      const data = await api.getLorries(targetPage, pageSize);
+      const data = await api.getLorries(targetPage, effectiveSize);
       const items = Array.isArray(data) ? data : data.content ?? [];
 
       setLorries(items);
