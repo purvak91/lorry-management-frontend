@@ -164,10 +164,22 @@ export default function CreateOrEditLorryModal({
       await onSubmit(payload);
       onClose();
     } catch (err) {
-      console.error('Submit error:', err);
-      const msg = err.message || 'Failed to save lorry';
-      setSubmitError(msg);
-      onStatusMessage && onStatusMessage(msg);
+      const raw = (err.message || '').toLowerCase();
+      let friendly = err.message || 'Failed to save lorry';
+      
+      if (raw.includes('unique') || raw.includes('constraint')) {
+        friendly = 'This LR already exists. Please use a different LR number.';
+        setErrors((prev) => ({
+          ...prev,
+          lr: friendly,
+        }));
+        setSubmitError(''); 
+      } else {
+        setSubmitError(friendly + ": make sure the lorry number is correct and the date is entered.");
+      }
+
+      onStatusMessage && onStatusMessage(friendly);
+
     } finally {
       setSubmitting(false);
     }
@@ -201,15 +213,17 @@ export default function CreateOrEditLorryModal({
         <form className="modal-form" onSubmit={handleSubmit}>
           <div className="modal-row">
             <label>LR</label>
-            <input
-              type="text"
-              name="lr"
-              value={form.lr}
-              readOnly
-              className={errors.lr ? 'input-error' : ''}
-            />
-            {loadingNext && <small>Generating LR...</small>}
-            {errors.lr && <div className="field-error">{errors.lr}</div>}
+            <div className='inside-modal-row'>
+              <input
+                type="text"
+                name="lr"
+                value={form.lr}
+                onChange={handleChange}
+                className={errors.lr ? 'input-error' : ''}
+              />
+              {loadingNext && <small>Generating LR...</small>}
+              {errors.lr && <div className="field-error">{errors.lr}</div>}
+            </div>
           </div>
 
           <AutocompleteInput
