@@ -89,3 +89,35 @@ export async function getNextLr() {
   }
   return res.json(); 
 }
+
+export async function getDistinctLorryNumbers() {
+  const res = await fetch(`${BASE_URL}/distinct/lorry-numbers`);
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json();
+}
+
+export async function getDistinctFromLocations() {
+  const res = await fetch(`${BASE_URL}/distinct/from-locations`);
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json(); 
+}
+
+export async function getDistinctToLocations() {
+  const res = await fetch(`${BASE_URL}/distinct/to-locations`);
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json(); 
+}
+
+export async function getDistinctConsignors() {
+  const res = await fetch(`${BASE_URL}/distinct/consignors`);
+  if (!res.ok) {
+    throw new Error(await parseError(res));
+  }
+  return res.json(); 
+}

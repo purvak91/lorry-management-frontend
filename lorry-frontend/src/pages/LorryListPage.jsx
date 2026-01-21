@@ -17,18 +17,15 @@ function LorryListPage() {
   const [pageSize, setPageSize] = useState(5);
 
   const [filters, setFilters] = useState({
-    searchText: '',
     startDate: '',
     toDate: ''
   });
   const [filterError, setFilterError] = useState('');
 
   useEffect(() => {
-    fetchLorries(0);   
     setPage(0);
-
-    prefetchSuggestions();
-  }, [filters.searchText, filters.startDate, filters.toDate]);
+    fetchLorries(0);
+  }, [filters.startDate, filters.toDate]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); 
@@ -38,7 +35,6 @@ function LorryListPage() {
   const [knownFromLocations, setKnownFromLocations] = useState([]);
   const [knownToLocations, setKnownToLocations] = useState([]);
   const [knownConsignorNames, setKnownConsignorNames] = useState([]);
-  const [knownConsignorAddresses, setKnownConsignorAddresses] = useState([]);
 
   const isError = useMemo(() => {
     if (!message) return false;
@@ -46,64 +42,20 @@ function LorryListPage() {
     return lower.includes('failed') || lower.includes('error');
   }, [message]);
 
-  async function prefetchSuggestions() {
-  try {
-    const pageSizeForSuggestions = 100;
-
-    let pageIndex = 0;
-    let totalPages = 1;
-
-    const allNums = new Set();
-    const allFroms = new Set();
-    const allTos = new Set();
-    const allConsignorNames = new Set();
-    const allConsignorAddresses = new Set();
-
-    const collectFromItems = (items) => {
-      items.forEach((it) => {
-        if (typeof it.lorryNumber === 'string' && it.lorryNumber.trim() !== '') {
-          allNums.add(it.lorryNumber.trim());
-        }
-        if (typeof it.fromLocation === 'string' && it.fromLocation.trim() !== '') {
-          allFroms.add(it.fromLocation.trim());
-        }
-        if (typeof it.toLocation === 'string' && it.toLocation.trim() !== '') {
-          allTos.add(it.toLocation.trim());
-        }
-        if (typeof it.consignorName === 'string' && it.consignorName.trim() !== '') {
-          allConsignorNames.add(it.consignorName.trim());
-        }
-        if (typeof it.consignorAddress === 'string' && it.consignorAddress.trim() !== '') {
-          allConsignorAddresses.add(it.consignorAddress.trim());
-        }
-      });
-    };
-
-    const first = await api.getLorries(pageIndex, pageSizeForSuggestions);
-    const firstItems = Array.isArray(first) ? first : first.content ?? [];
-    collectFromItems(firstItems);
-
-    if (Array.isArray(first)) {
-      totalPages = 1;
-    } else {
-      totalPages = first.totalPages ?? 1;
+  useEffect(() => {
+  async function loadAutocomplete() {
+      try {
+        setKnownLorryNumbers(await api.getDistinctLorryNumbers());
+        setKnownFromLocations(await api.getDistinctFromLocations());
+        setKnownToLocations(await api.getDistinctToLocations());
+        setKnownConsignorNames(await api.getDistinctConsignors());
+      } catch (e) {
+        console.error('Failed to load autocomplete options', e);
+      }
     }
 
-    for (pageIndex = 1; pageIndex < totalPages; pageIndex++) {
-      const data = await api.getLorries(pageIndex, pageSizeForSuggestions);
-      const items = Array.isArray(data) ? data : data.content ?? [];
-      collectFromItems(items);
-    }
-
-    setKnownLorryNumbers(Array.from(allNums));
-    setKnownFromLocations(Array.from(allFroms));
-    setKnownToLocations(Array.from(allTos));
-    setKnownConsignorNames(Array.from(allConsignorNames));
-    setKnownConsignorAddresses(Array.from(allConsignorAddresses));
-  } catch (err) {
-    console.error('Failed to prefetch suggestion data:', err);
-  }
-}
+    loadAutocomplete();
+  }, []);
 
   async function fetchLorries(targetPage = page, sizeOverride) {
     setMessage('Loading lorries...');
@@ -115,56 +67,6 @@ function LorryListPage() {
       const items = Array.isArray(data) ? data : data.content ?? [];
 
       setLorries(items);
-
-      const nums = items
-        .map((it) => it.lorryNumber)
-        .filter((n) => typeof n === 'string' && n.trim() !== '');
-
-      const froms = items
-        .map((it) => it.fromLocation)
-        .filter((v) => typeof v === 'string' && v.trim() !== '');
-
-      const tos = items
-        .map((it) => it.toLocation)
-        .filter((v) => typeof v === 'string' && v.trim() !== '');
-
-      const consignorNames = items
-        .map((it) => it.consignorName)
-        .filter((v) => typeof v === 'string' && v.trim() !== '');
-
-      const consignorAddresses = items
-        .map((it) => it.consignorAddress)
-        .filter((v) => typeof v === 'string' && v.trim() !== '');
-
-      setKnownLorryNumbers((prev) => {
-        const set = new Set(prev);
-        nums.forEach((n) => set.add(n));
-        return Array.from(set);
-      });
-
-      setKnownFromLocations((prev) => {
-        const set = new Set(prev);
-        froms.forEach((v) => set.add(v));
-        return Array.from(set);
-      });
-
-      setKnownToLocations((prev) => {
-        const set = new Set(prev);
-        tos.forEach((v) => set.add(v));
-        return Array.from(set);
-      });
-
-      setKnownConsignorNames((prev) => {
-        const set = new Set(prev);
-        consignorNames.forEach((v) => set.add(v));
-        return Array.from(set);
-      });
-
-      setKnownConsignorAddresses((prev) => {
-        const set = new Set(prev);
-        consignorAddresses.forEach((v) => set.add(v));
-        return Array.from(set);
-      });
 
       setMessage(`Loaded ${items.length} lorries`);
 
@@ -282,38 +184,6 @@ function LorryListPage() {
     await fetchLorries(safePage);
   }
 
-  const filteredLorries = useMemo(() => {
-    if (filterError) {
-      return lorries;
-    }
-
-    let result = lorries;
-    const text = filters.searchText.trim().toLowerCase();
-
-    if (text) {
-      result = result.filter((l) => {
-        return (
-          String(l.lr ?? '').toLowerCase().includes(text) ||
-          String(l.lorryNumber ?? '').toLowerCase().includes(text) ||
-          String(l.consignorName ?? '').toLowerCase().includes(text) ||
-          String(l.fromLocation ?? '').toLowerCase().includes(text) ||
-          String(l.toLocation ?? '').toLowerCase().includes(text)
-        );
-      });
-    }
-
-    if (filters.startDate) {
-      result = result.filter((l) => !l.date || l.date >= filters.startDate);
-    }
-
-    if (filters.toDate) {
-      result = result.filter((l) => !l.date || l.date <= filters.toDate);
-    }
-
-    return result;
-  }, [lorries, filters, filterError]);
-
-
   return (
     <div className="app-shell">
       <h1>Lorry Management System</h1>
@@ -344,11 +214,12 @@ function LorryListPage() {
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Search LR, lorry no, consignor, from, to"
+          placeholder="Search (coming soon)"
           value={filters.searchText ?? ''}
           onChange={(e) =>
             setFilters((prev) => ({ ...prev, searchText: e.target.value }))
           }
+          disabled={true}
         />
 
         <label>
@@ -443,9 +314,11 @@ function LorryListPage() {
           <span>
             Page {pageInfo.pageNumber + 1} of {pageInfo.totalPages} • Total{' '}
             {pageInfo.totalElements} records
-            {(filters.searchText || filters.startDate || filters.toDate) && (
-              <> • Showing {filteredLorries.length} on this page after filters</>
-            )}
+            {filters.startDate || filters.toDate ? (
+              <span>
+                • Filters applied: {filters.startDate} to {filters.toDate}
+              </span>
+            ) : null}
           </span>
         )}
       </div>
@@ -465,7 +338,7 @@ function LorryListPage() {
             </div>
           )}
           <LorryTable
-            lorries={filteredLorries}
+            lorries={lorries}
             loading={loading}
             onEdit={openEditModal}
             onDelete={handleDeleteLorry}
@@ -484,7 +357,6 @@ function LorryListPage() {
         knownFromLocations={knownFromLocations}
         knownToLocations={knownToLocations}
         knownConsignorNames={knownConsignorNames}
-        knownConsignorAddresses={knownConsignorAddresses}
       />
     </div>
   );
