@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect} from 'react';
 import LorryTable from '../components/LorryTable';
-import PaginationControls from '../components/PaginationControls';
+import LorryToolbar from '../components/LorryToolbar';
 import CreateOrEditLorryModal from '../components/CreateOrEditLorryModal';
+import LorryFilterBar from '../components/LorryFilterBar';
 import * as api from '../services/lorryApi';
 import { useLorries } from '../hooks/useLorries';
 import { useAutocompleteOptions } from '../hooks/useAutocompleteOptions';
@@ -45,10 +46,6 @@ function LorryListPage() {
     const lower = message.toLowerCase();
     return lower.includes('failed') || lower.includes('error');
   }, [message]);
-
-  async function handleLoadClick() {
-    await fetchLorries(page);
-  }
 
   async function handleDeleteLorry(lr) {
     if (!confirm(`Delete lorry LR ${lr}? This action cannot be undone.`)) return;
@@ -132,123 +129,54 @@ function LorryListPage() {
     await fetchLorries(safePage);
   }
 
+  function handleFiltersChange(partial) {
+    setFilters((prev) => {
+      const next = { ...prev, ...partial };
+
+      if (
+        next.startDate &&
+        next.toDate &&
+        next.toDate < next.startDate
+      ) {
+        setFilterError('To date cannot be earlier than From date.');
+      } else {
+        setFilterError('');
+      }
+
+      return next;
+    });
+  }
+
   return (
     <div className="app-shell">
       <h1>Lorry Management System</h1>
       <p className="subtitle">Manage lorries — list &amp; create</p>
 
-      <div className="toolbar">
-        <button onClick={handleLoadClick} disabled={loading}>
-          {loading ? 'Loading...' : 'Load Lorries'}
-        </button>
+      <LorryToolbar
+        loading={loading}
+        page={page}
+        totalPages={pageInfo.totalPages}
+        onLoad={() => fetchLorries(page)}
+        onPageChange={handlePageChange}
+        onCreate={openCreateModal}
+      />
 
-        <PaginationControls
-          page={page}
-          totalPages={pageInfo.totalPages}
-          loading={loading}
-          onPageChange={handlePageChange}
-        />
-
-        <button
-          className="primary"
-          onClick={openCreateModal}
-          style={{ marginLeft: 12 }}
-          disabled={loading}
-        >
-          + Create Lorry
-        </button>
-      </div>
-
-      <div className="filter-bar">
-        <input
-          type="text"
-          placeholder="Search (coming soon)"
-          value={filters.searchText ?? ''}
-          onChange={(e) =>
-            setFilters((prev) => ({ ...prev, searchText: e.target.value }))
-          }
-          disabled={true}
-        />
-
-        <label>
-          From:
-          <input
-            type="date"
-            value={filters.startDate ?? ''}
-            onChange={(e) => {
-              const newStart = e.target.value;
-              setFilters((prev) => ({ ...prev, startDate: newStart }));
-
-              const to = filters.toDate;
-              if (newStart && to && to < newStart) {
-                setFilterError('To date cannot be earlier than From date.');
-              }
-              else {
-                setFilterError('');
-              }
-            }}
-          />
-        </label>
-
-        <label>
-          To:
-          <input
-            type="date"
-            value={filters.toDate ?? ''}
-            onChange={(e) => {
-              const newTo = e.target.value;
-              setFilters((prev) => ({ ...prev, toDate: newTo }));
-
-              const start = filters.startDate;
-              if (start && newTo && newTo < start) {
-                setFilterError('To date cannot be earlier than From date.');
-              } else {
-                setFilterError('');
-              }
-            }}
-          />
-        </label>
-
-        <button
-          type="button"
-          onClick={() =>
-            setFilters({
-              searchText: '',
-              startDate: '',
-              toDate: '',
-            })
-          }
-        >
-          Clear filters
-        </button>
-
-        <div className="page-size">
-          <span>Per page:</span>
-          <select
-            value={pageSize}
-            onChange={async (e) => {
-              const newSize = Number(e.target.value) || 5;
-              const firstPage = 0;
-
-              setPageSize(newSize);
-              setPage(firstPage);
-
-              await fetchLorries(firstPage, newSize);
-            }}
-            disabled={loading}
-          >
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-          </select>
-        </div>
-      </div>
-      
-        {filterError && (
-          <div className="filter-error filter-error--full">
-            {filterError}
-          </div>
-        )}
+      <LorryFilterBar
+        filters={filters}
+        filterError={filterError}
+        pageSize={pageSize}
+        loading={loading}
+        onFiltersChange={handleFiltersChange}
+        onClearFilters={() => {
+          setFilters({ startDate: '', toDate: '', searchText: '' });
+          setFilterError('');
+        }}
+        onPageSizeChange={async (newSize) => {
+          setPageSize(newSize);
+          setPage(0);
+          await fetchLorries(0, newSize);
+        }}
+      />
 
       <div className="status-bar">
         <span
@@ -261,7 +189,7 @@ function LorryListPage() {
         {pageInfo.totalElements > 0 && (
           <span>
             Page {pageInfo.pageNumber + 1} of {pageInfo.totalPages} • Total{' '}
-            {pageInfo.totalElements} records
+            {pageInfo.totalElements} records 
             {filters.startDate || filters.toDate ? (
               <span>
                 • Filters applied: {filters.startDate} to {filters.toDate}
