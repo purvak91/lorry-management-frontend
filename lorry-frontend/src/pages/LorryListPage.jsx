@@ -4,6 +4,7 @@ import PaginationControls from '../components/PaginationControls';
 import CreateOrEditLorryModal from '../components/CreateOrEditLorryModal';
 import * as api from '../services/lorryApi';
 import { useLorries } from '../hooks/useLorries';
+import { useAutocompleteOptions } from '../hooks/useAutocompleteOptions';
 
 function LorryListPage() {
   const [message, setMessage] = useState('No data loaded');
@@ -11,7 +12,8 @@ function LorryListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [filters, setFilters] = useState({
     startDate: '',
-    toDate: ''
+    toDate: '',
+    searchText: ''
   });
   const [filterError, setFilterError] = useState('');
   const {
@@ -21,41 +23,28 @@ function LorryListPage() {
     fetchLorries,
     deleteLorry
   } = useLorries({ page, pageSize, filters });
+  const {
+    lorryNumbers: knownLorryNumbers,
+    fromLocations: knownFromLocations,
+    toLocations: knownToLocations,
+    consignorNames: knownConsignorNames,
+  } = useAutocompleteOptions();
 
   useEffect(() => {
     setPage(0);
     fetchLorries(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.startDate, filters.toDate]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); 
   const [editingLorry, setEditingLorry] = useState(null); 
 
-  const [knownLorryNumbers, setKnownLorryNumbers] = useState([]);
-  const [knownFromLocations, setKnownFromLocations] = useState([]);
-  const [knownToLocations, setKnownToLocations] = useState([]);
-  const [knownConsignorNames, setKnownConsignorNames] = useState([]);
-
   const isError = useMemo(() => {
     if (!message) return false;
     const lower = message.toLowerCase();
     return lower.includes('failed') || lower.includes('error');
   }, [message]);
-
-  useEffect(() => {
-  async function loadAutocomplete() {
-      try {
-        setKnownLorryNumbers(await api.getDistinctLorryNumbers());
-        setKnownFromLocations(await api.getDistinctFromLocations());
-        setKnownToLocations(await api.getDistinctToLocations());
-        setKnownConsignorNames(await api.getDistinctConsignors());
-      } catch (e) {
-        console.error('Failed to load autocomplete options', e);
-      }
-    }
-
-    loadAutocomplete();
-  }, []);
 
   async function handleLoadClick() {
     await fetchLorries(page);
