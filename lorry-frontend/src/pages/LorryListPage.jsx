@@ -3,24 +3,24 @@ import LorryTable from '../components/LorryTable';
 import PaginationControls from '../components/PaginationControls';
 import CreateOrEditLorryModal from '../components/CreateOrEditLorryModal';
 import * as api from '../services/lorryApi';
+import { useLorries } from '../hooks/useLorries';
 
 function LorryListPage() {
   const [message, setMessage] = useState('No data loaded');
-  const [lorries, setLorries] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [pageInfo, setPageInfo] = useState({
-    pageNumber: 0,
-    totalPages: 0,
-    totalElements: 0,
-  });
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(5);
-
   const [filters, setFilters] = useState({
     startDate: '',
     toDate: ''
   });
   const [filterError, setFilterError] = useState('');
+  const {
+    lorries,
+    loading,
+    pageInfo,
+    fetchLorries,
+    deleteLorry
+  } = useLorries({ page, pageSize, filters });
 
   useEffect(() => {
     setPage(0);
@@ -57,43 +57,6 @@ function LorryListPage() {
     loadAutocomplete();
   }, []);
 
-  async function fetchLorries(targetPage = page, sizeOverride) {
-    setMessage('Loading lorries...');
-    setLoading(true);
-
-    try {
-      const effectiveSize = sizeOverride ?? pageSize;
-      const data = await api.getLorries(targetPage, effectiveSize, filters);
-      const items = Array.isArray(data) ? data : data.content ?? [];
-
-      setLorries(items);
-
-      setMessage(`Loaded ${items.length} lorries`);
-
-      if (!Array.isArray(data)) {
-        setPageInfo({
-          pageNumber: data.number,
-          totalPages: data.totalPages,
-          totalElements: data.totalElements,
-        });
-      } else {
-        setPageInfo({
-          pageNumber: 0,
-          totalElements: items.length,
-          totalPages: 1,
-        });
-      }
-
-      return items;
-    } catch (err) {
-      console.error('Failed to load from backend:', err);
-      setMessage(err.message || 'Failed to load lorries from backend');
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleLoadClick() {
     await fetchLorries(page);
   }
@@ -101,13 +64,11 @@ function LorryListPage() {
   async function handleDeleteLorry(lr) {
     if (!confirm(`Delete lorry LR ${lr}? This action cannot be undone.`)) return;
 
-    setLoading(true);
-    setMessage(`Deleting LR ${lr}...`);
-
     try {
-      await api.deleteLorry(lr);
-      setMessage(`LR ${lr} deleted`);
+      setMessage(`Deleting LR ${lr}...`);
+      await deleteLorry(lr);
 
+      setMessage(`LR ${lr} deleted`);
       const items = await fetchLorries(page);
 
       if (items.length === 0 && page > 0) {
@@ -116,10 +77,8 @@ function LorryListPage() {
         await fetchLorries(prevPage);
       }
     } catch (err) {
-      console.error('Network/error deleting lorry:', err);
+      console.error('Delete failed:', err);
       setMessage(err.message || 'Network error while deleting lorry');
-    } finally {
-      setLoading(false);
     }
   }
 
