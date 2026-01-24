@@ -22,7 +22,12 @@ async function parseError(res) {
   return `HTTP ${res.status}`;
 }
 
-export async function getLorries(page= 0, size = 5, filters = {}) {
+export async function getLorries(
+  page= 0, 
+  size = 5, 
+  filters = {}, 
+  signal
+) {
   const params = new URLSearchParams();
   params.append("page", page);
   params.append("size", size);
@@ -31,7 +36,8 @@ export async function getLorries(page= 0, size = 5, filters = {}) {
   if (filters.startDate) params.append("from", filters.startDate);
   if (filters.toDate) params.append("to", filters.toDate);
 
-  const res = await fetch(`${API_BASE_URL}/api/lorry?${params.toString()}`);
+  const res = await fetch(`${API_BASE_URL}/api/lorry?${params.toString()}`, { signal });
+
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   return res.json();

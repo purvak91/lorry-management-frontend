@@ -12,9 +12,11 @@ function LorryFilterBar({
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Search (coming soon)"
+          placeholder="Search LR, lorry no, consignor, from, to"
           value={filters.searchText ?? ''}
-          disabled
+          onChange={(e) =>
+            onFiltersChange({ searchText: e.target.value })
+          }
         />
 
         <label>
@@ -25,6 +27,7 @@ function LorryFilterBar({
             onChange={(e) =>
               onFiltersChange({ startDate: e.target.value })
             }
+            disabled = {loading}
           />
         </label>
 
@@ -36,10 +39,15 @@ function LorryFilterBar({
             onChange={(e) =>
               onFiltersChange({ toDate: e.target.value })
             }
+            disabled = {loading}
           />
         </label>
 
-        <button type="button" onClick={onClearFilters}>
+        <button 
+          type="button" 
+          onClick={onClearFilters} 
+          disabled={loading}
+        >
           Clear filters
         </button>
 

@@ -35,7 +35,7 @@ function LorryListPage() {
     setPage(0);
     fetchLorries(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.startDate, filters.toDate]);
+  }, [filters.searchText, filters.startDate, filters.toDate]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create'); 
