@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import * as api from '../services/lorryApi';
 
 export function useAutocompleteOptions() {
@@ -8,35 +8,35 @@ export function useAutocompleteOptions() {
   const [consignorNames, setConsignorNames] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const [
-          lorryNums,
-          froms,
-          tos,
-          consignors,
-        ] = await Promise.all([
-          api.getDistinctLorryNumbers(),
-          api.getDistinctFromLocations(),
-          api.getDistinctToLocations(),
-          api.getDistinctConsignors(),
-        ]);
+  const refershAutocompleteOptions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [
+        lorryNums,
+        froms,
+        tos,
+        consignors,
+      ] = await Promise.all([
+        api.getDistinctLorryNumbers(),
+        api.getDistinctFromLocations(),
+        api.getDistinctToLocations(),
+        api.getDistinctConsignors(),
+      ]);
 
-        setLorryNumbers(lorryNums);
-        setFromLocations(froms);
-        setToLocations(tos);
-        setConsignorNames(consignors);
-      } catch (err) {
-        console.error('Failed to load autocomplete options', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    load();
+      setLorryNumbers(lorryNums);
+      setFromLocations(froms);
+      setToLocations(tos);
+      setConsignorNames(consignors);
+    } catch (err) {
+      console.error('Failed to load autocomplete options', err);
+    } finally {
+      setLoading(false);
+    } 
   }, []);
+
+  useEffect(() => {
+    refershAutocompleteOptions();
+  }, [refershAutocompleteOptions]);
 
   return {
     lorryNumbers,
@@ -44,5 +44,6 @@ export function useAutocompleteOptions() {
     toLocations,
     consignorNames,
     loading,
+    refersh: refershAutocompleteOptions,
   };
 }

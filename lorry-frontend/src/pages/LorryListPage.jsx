@@ -29,6 +29,7 @@ function LorryListPage() {
     fromLocations: knownFromLocations,
     toLocations: knownToLocations,
     consignorNames: knownConsignorNames,
+    refersh: refershAutocompleteOptions,
   } = useAutocompleteOptions();
 
   useEffect(() => {
@@ -105,6 +106,7 @@ function LorryListPage() {
       try {
         await api.createLorry(payload);
         setMessage('Lorry created successfully');
+        await refershAutocompleteOptions();
         setPage(0);
         await fetchLorries(0);
       } catch (err) {
@@ -123,6 +125,7 @@ function LorryListPage() {
       try {
         await api.updateLorry(editingLr, payload);
         setMessage(`Lr ${editingLr} updated`);
+        await refershAutocompleteOptions();
         await fetchLorries(page);
       } catch (err) {
         console.error('Network error updating lorry:', err);
@@ -176,6 +179,12 @@ function LorryListPage() {
           setMessage('Loading lorries...');
           fetchLorries(page).then(items => {
             setMessage(`Loaded ${items.length} lorries`);
+            if (
+              knownLorryNumbers.length === 0 &&
+              knownFromLocations.length === 0
+            ) {
+              refershAutocompleteOptions();
+            }
           }).catch(err => {
             setMessage(err?.message || err?.error || 'Failed to load lorries');
           });

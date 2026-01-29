@@ -98,34 +98,14 @@ export default function CreateOrEditLorryModal({
 
     if (!form.lr) {
       newErrors.lr = 'LR is missing. Try regenerating.';
-    }
-
-    if (!trimmedNumber) {
-      newErrors.lorryNumber = 'Lorry number is required.';
+    } else if (isNaN(Number(form.lr))) {
+      newErrors.lr = 'LR must be a number. Try regenerating.';
     }
 
     if (form.date) {
       const todayStr = new Date().toISOString().slice(0, 10);
       if (form.date > todayStr) {
         newErrors.date = 'Date cannot be in the future.';
-      }
-    }
-
-    if (form.weight !== '') {
-      const w = Number(form.weight);
-      if (Number.isNaN(w)) {
-        newErrors.weight = 'Weight must be a number.';
-      } else if (w < 0) {
-        newErrors.weight = 'Weight cannot be negative.';
-      }
-    }
-
-    if (form.freight !== '') {
-      const f = Number(form.freight);
-      if (Number.isNaN(f)) {
-        newErrors.freight = 'Freight must be a number.';
-      } else if (f < 0) {
-        newErrors.freight = 'Freight cannot be negative.';
       }
     }
 
@@ -301,6 +281,7 @@ export default function CreateOrEditLorryModal({
                 name="weight"
                 value={form.weight}
                 onChange={handleChange}
+                onWheel={(e) => e.target.blur()}
                 className={errors.weight ? 'input-error' : ''}
                 disabled={submitting}
               />
@@ -318,6 +299,7 @@ export default function CreateOrEditLorryModal({
                 name="freight"
                 value={form.freight}
                 onChange={handleChange}
+                onWheel={(e) => e.target.blur()}
                 className={errors.freight ? 'input-error' : ''}
                 disabled={submitting}
               />

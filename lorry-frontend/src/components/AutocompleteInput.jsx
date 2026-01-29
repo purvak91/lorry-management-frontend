@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 
 function buildSuggestions(rawValue, knownList = []) {
   const raw = rawValue || '';
@@ -37,6 +37,9 @@ export default function AutocompleteInput({
   error,
   disabled = false,
 }) {
+  const listRef = useRef(null);
+  const itemRefs = useRef([]);
+
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [highlightIndex, setHighlightIndex] = useState(-1);
 
@@ -44,6 +47,18 @@ export default function AutocompleteInput({
     () => buildSuggestions(value, knownOptions),
     [value, knownOptions]
   );
+
+  useEffect(() => {
+    if (highlightIndex < 0) return;
+
+    const el = itemRefs.current[highlightIndex];
+    if (!el) return;
+
+    el.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [highlightIndex]);
 
   function handleInputChange(e) {
     onChange(e.target.value);
@@ -114,8 +129,9 @@ export default function AutocompleteInput({
         {error && <div className="field-error">{error}</div>}
 
         {showSuggestions && suggestions.length > 0 && (
-          <div className="autocomplete-list">
+          <div className="autocomplete-list" ref={listRef}>
             {suggestions.map((val, idx) => {
+
               const query = (value || '').trim();
               const lowerVal = val.toLowerCase();
               const lowerQuery = query.toLowerCase();
@@ -136,6 +152,7 @@ export default function AutocompleteInput({
               return (
                 <div
                   key={val}
+                  ref={(el) => (itemRefs.current[idx] = el)}
                   onClick={() => {
                     onChange(val);
                     setHighlightIndex(-1);
@@ -145,7 +162,7 @@ export default function AutocompleteInput({
                     'autocomplete-item' +
                     (isHighlighted ? ' autocomplete-item--highlighted' : '')
                   }
-                  onMouseDown={(e) => e.preventDefault()} // prevent blur before click
+                  onMouseDown={(e) => e.preventDefault()}
                 >
                   {index >= 0 ? (
                     <>
