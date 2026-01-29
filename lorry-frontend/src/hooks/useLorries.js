@@ -1,4 +1,4 @@
-import { useState, useRef} from 'react';
+import { useState, useRef, useEffect} from 'react';
 import * as api from '../services/lorryApi';
 
 export function useLorries({ page, pageSize, filters }) {
@@ -9,7 +9,14 @@ export function useLorries({ page, pageSize, filters }) {
     totalPages: 0,
     totalElements: 0,
   });
+  
   const abortRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   async function fetchLorries(targetPage = page, sizeOverride) {
     if (abortRef.current) {
@@ -39,9 +46,10 @@ export function useLorries({ page, pageSize, filters }) {
       return items;
 
     } catch (error) {
-      if (error.name !== 'AbortError') {
-        throw error;
+      if (error.name === 'AbortError') {
+        throw null;
       }
+      throw error;
     } finally {
       if (abortRef.current === conroller) {
         setLoading(false);

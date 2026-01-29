@@ -32,9 +32,18 @@ function LorryListPage() {
   } = useAutocompleteOptions();
 
   useEffect(() => {
-    setPage(0);
-    fetchLorries(0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (filterError) return;
+    async function loadData() {
+      try {
+        setMessage('Loading lorries...');
+        setPage(0);
+        await fetchLorries(page);
+        setMessage('Lorries loaded');
+      } catch (err) {
+        setMessage(err?.message || err?.error || 'Failed to load lorries');
+      }
+    }
+    loadData();
   }, [filters.searchText, filters.startDate, filters.toDate]);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -64,7 +73,7 @@ function LorryListPage() {
       }
     } catch (err) {
       console.error('Delete failed:', err);
-      setMessage(err.message || 'Network error while deleting lorry');
+      setMessage(err?.message || err?.error ||'Network error while deleting lorry');
     }
   }
 
@@ -100,7 +109,7 @@ function LorryListPage() {
         await fetchLorries(0);
       } catch (err) {
         console.error('Network/create error:', err);
-        setMessage(err.message || 'Network error while creating lorry');
+        setMessage(err?.message || err?.error ||'Network error while creating lorry');
         throw err; 
       }
     } else {
@@ -117,16 +126,23 @@ function LorryListPage() {
         await fetchLorries(page);
       } catch (err) {
         console.error('Network error updating lorry:', err);
-        setMessage(err.message || 'Network error while updating lorry');
+        setMessage(err?.message || err?.error ||'Network error while updating lorry');
         throw err;
       }
     }
   }
 
   async function handlePageChange(newPage) {
+    if (loading) return;
     const safePage = Math.max(0, newPage);
-    setPage(safePage);
-    await fetchLorries(safePage);
+    try {
+      setMessage(`Loading page ${safePage + 1}...`);
+      setPage(safePage);
+      await fetchLorries(safePage);
+      setMessage(`Page ${safePage + 1} loaded`);
+    } catch (e) {
+      setMessage(e.message || 'Failed to change page');
+    }
   }
 
   function handleFiltersChange(partial) {
@@ -156,7 +172,14 @@ function LorryListPage() {
         loading={loading}
         page={page}
         totalPages={pageInfo.totalPages}
-        onLoad={() => fetchLorries(page)}
+        onLoad={() => {
+          setMessage('Loading lorries...');
+          fetchLorries(page).then(items => {
+            setMessage(`Loaded ${items.length} lorries`);
+          }).catch(err => {
+            setMessage(err?.message || err?.error || 'Failed to load lorries');
+          });
+        }}
         onPageChange={handlePageChange}
         onCreate={openCreateModal}
       />

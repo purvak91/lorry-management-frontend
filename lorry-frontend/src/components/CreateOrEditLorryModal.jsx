@@ -54,7 +54,7 @@ export default function CreateOrEditLorryModal({
           initialData.freight != null ? String(initialData.freight) : '',
         description: initialData.description ?? '',
       });
-    } else {
+    } else if (!isEditing) {
       setForm({
         lr: '',
         lorryNumber: '',
@@ -73,12 +73,10 @@ export default function CreateOrEditLorryModal({
 
   async function fetchNextLr() {
     setLoadingNext(true);
-    onStatusMessage && onStatusMessage('Generating next LR...');
     try {
       const data = await getNextLr();
       const lr = data.lr ?? '';
       setForm((prev) => ({ ...prev, lr }));
-      onStatusMessage && onStatusMessage(`Next LR: ${lr}`);
     } catch (err) {
       console.error('Failed to generate LR:', err);
       onStatusMessage && onStatusMessage('Failed to generate LR');
@@ -164,21 +162,24 @@ export default function CreateOrEditLorryModal({
       await onSubmit(payload);
       onClose();
     } catch (err) {
-      const raw = (err.message || '').toLowerCase();
-      let friendly = err.message || 'Failed to save lorry';
-      
-      if (raw.includes('unique') || raw.includes('constraint')) {
-        friendly = 'This LR already exists. Please use a different LR number.';
-        setErrors((prev) => ({
-          ...prev,
-          lr: friendly,
-        }));
-        setSubmitError(''); 
-      } else {
-        setSubmitError(friendly + ": make sure the lorry number is correct and the date is entered.");
+      if (err?.errors && Array.isArray(err.errors)) {
+        const fieldErrors = {};
+
+        err.errors.forEach(e => {
+          fieldErrors[e.field] = e.message;
+        });
+
+        setErrors(fieldErrors);
+        setSubmitError('Please fix the highlighted fields and try again.');
+        return;
       }
 
-      onStatusMessage && onStatusMessage(friendly);
+      if (err?.message?.toLowerCase()?.includes('exists')) {
+        setErrors({ lr: err.message });
+        return;
+      }
+
+      setSubmitError(err.message || 'Failed to save lorry');
 
     } finally {
       setSubmitting(false);

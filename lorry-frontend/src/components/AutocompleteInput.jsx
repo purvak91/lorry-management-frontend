@@ -52,8 +52,7 @@ export default function AutocompleteInput({
   }
 
   function handleBlur() {
-    setShowSuggestions(false);
-    setHighlightIndex(-1);
+    setTimeout(() => setShowSuggestions(false), 100);
   }
 
   function handleKeyDown(e) {

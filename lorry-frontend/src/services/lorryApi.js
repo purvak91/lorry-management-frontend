@@ -3,23 +3,13 @@ const BASE_URL = `${API_BASE_URL}/api/lorry`;
 
 async function parseError(res) {
   const ct = res.headers.get('content-type') || '';
+
   if (ct.includes('application/json')) {
-    try {
-      const data = await res.json();
-      if (data && (data.message || data.error)) {
-        return data.message || data.error;
-      }
-      return JSON.stringify(data);
-    } catch {
-    }
-  } else {
-    try {
-      const text = await res.text();
-      if (text) return text;
-    } catch {
-    }
+    const data = await res.json();
+    throw data; 
   }
-  return `HTTP ${res.status}`;
+
+  throw { message: `HTTP ${res.status}` };
 }
 
 export async function getLorries(
@@ -38,7 +28,9 @@ export async function getLorries(
 
   const res = await fetch(`${API_BASE_URL}/api/lorry?${params.toString()}`, { signal });
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    await parseError(res);
+  }
 
   return res.json();
 }
@@ -48,7 +40,7 @@ export async function deleteLorry(lr) {
     method: 'DELETE',
   });
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
 }
 
@@ -60,7 +52,7 @@ export async function createLorry(payload) {
   });
 
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
 
   try {
@@ -78,7 +70,7 @@ export async function updateLorry(lr, payload) {
   });
 
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
 
   try {
@@ -91,7 +83,7 @@ export async function updateLorry(lr, payload) {
 export async function getNextLr() {
   const res = await fetch(`${BASE_URL}/next-lr`);
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
   return res.json(); 
 }
@@ -99,7 +91,7 @@ export async function getNextLr() {
 export async function getDistinctLorryNumbers() {
   const res = await fetch(`${BASE_URL}/distinct/lorry-numbers`);
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
   return res.json();
 }
@@ -107,7 +99,7 @@ export async function getDistinctLorryNumbers() {
 export async function getDistinctFromLocations() {
   const res = await fetch(`${BASE_URL}/distinct/from-locations`);
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
   return res.json(); 
 }
@@ -115,7 +107,7 @@ export async function getDistinctFromLocations() {
 export async function getDistinctToLocations() {
   const res = await fetch(`${BASE_URL}/distinct/to-locations`);
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
   return res.json(); 
 }
@@ -123,7 +115,7 @@ export async function getDistinctToLocations() {
 export async function getDistinctConsignors() {
   const res = await fetch(`${BASE_URL}/distinct/consignors`);
   if (!res.ok) {
-    throw new Error(await parseError(res));
+    await parseError(res);
   }
   return res.json(); 
 }
