@@ -31,7 +31,7 @@ export function useLorries({ page, pageSize, filters }) {
 
       const data = await api.getLorries(targetPage, effectiveSize, filters, conroller.signal);
 
-      const items = Array.isArray(data) ? data : data.content ?? [];
+      const items = data.content ?? [];
 
       setLorries(items);
 
@@ -47,7 +47,7 @@ export function useLorries({ page, pageSize, filters }) {
 
     } catch (error) {
       if (error.name === 'AbortError') {
-        throw null;
+        return;
       }
       throw error;
     } finally {

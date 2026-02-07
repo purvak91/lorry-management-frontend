@@ -1,4 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:1001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+if (!API_BASE_URL) {
+  throw new Error("VITE_API_BASE_URL is not defined");
+}
+
 const BASE_URL = `${API_BASE_URL}/api/lorry`;
 
 async function parseError(res) {
@@ -26,7 +31,7 @@ export async function getLorries(
   if (filters.startDate) params.append("from", filters.startDate);
   if (filters.toDate) params.append("to", filters.toDate);
 
-  const res = await fetch(`${API_BASE_URL}/api/lorry?${params.toString()}`, { signal });
+  const res = await fetch(`${BASE_URL}?${params.toString()}`, { signal });
 
   if (!res.ok) {
     await parseError(res);
